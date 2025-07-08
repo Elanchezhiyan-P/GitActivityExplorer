@@ -1,0 +1,109 @@
+﻿<UserControl x:Class="GitActivityExplorer.GitActivityWindowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+             xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
+             Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+             Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="800"
+             Name="MyToolWindow">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="10" Orientation="Vertical">
+
+            <!-- Top Git Operations with Icons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+                <Button ToolTip="Git Fetch" Click="GitFetch_Click" Width="40" Margin="0,0,10,0">
+                    <Image Source="/Resources/fetch.png" Width="16" Height="16"/>
+                </Button>
+                <Button ToolTip="Git Pull" Click="GitPull_Click" Width="40">
+                    <Image Source="/Resources/pull.png" Width="16" Height="16"/>
+                </Button>
+            </StackPanel>
+
+            <!-- Branch Selector -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
+                <TextBlock Text="Branch:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" Width="60"/>
+                <ComboBox Name="BranchSelector" SelectionChanged="BranchSelector_SelectionChanged" Width="300"/>
+            </StackPanel>
+
+            <!-- Status Text -->
+            <TextBlock Name="StatusTextBlock" FontWeight="Bold" Foreground="Orange" Margin="0,5,0,5" TextWrapping="Wrap"/>
+            <StackPanel Name="LoadingSpinner" Orientation="Horizontal" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,10,0,10">
+                <TextBlock Text="Loading..." FontWeight="Bold" Foreground="LightGray" Margin="0,0,10,0"/>
+                <ProgressBar IsIndeterminate="True" Width="100" Height="10"/>
+            </StackPanel>
+
+            <!-- Commit Table -->
+            <TextBlock Text="Git Commit Timeline" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
+            <DataGrid Name="CommitTable" AutoGenerateColumns="False" Height="300" Margin="0,0,0,10"
+                      IsReadOnly="True" SelectionChanged="CommitTable_SelectionChanged">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="3*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="MinWidth" Value="150"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Author" Binding="{Binding Author}" Width="*"/>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*"/>
+                    <DataGridTextColumn Header="Commit ID" Binding="{Binding CommitId}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Commit Navigation -->
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,10">
+                <Button Content="⏮️ Prev" Click="PrevCommit_Click" Width="80" Margin="0,0,10,0"/>
+                <Button Content="⏭️ Next" Click="NextCommit_Click" Width="80"/>
+            </StackPanel>
+
+            <!-- File Changes Table -->
+            <TextBlock Text="File Changes for Selected Commit:" FontWeight="Bold" Margin="0,10,0,5" />
+            <DataGrid Name="FileChangesTable" AutoGenerateColumns="False" Height="150" Margin="0,0,0,10" IsReadOnly="True"
+                      MouseDoubleClick="FileChangesTable_MouseDoubleClick">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="Added">
+                                <Setter Property="Background" Value="#d4edda"/>
+                                <Setter Property="Foreground" Value="#155724"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="Modified">
+                                <Setter Property="Background" Value="#d1ecf1"/>
+                                <Setter Property="Foreground" Value="#0c5460"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="Deleted">
+                                <Setter Property="Background" Value="#f8d7da"/>
+                                <Setter Property="Foreground" Value="#721c24"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="Renamed">
+                                <Setter Property="Background" Value="#fff3cd"/>
+                                <Setter Property="Foreground" Value="#856404"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Resources>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                    <DataGridTextColumn Header="File Path" Binding="{Binding Path}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Export Buttons -->
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="Refresh" Click="button1_Click" Width="100" Margin="0,0,10,0"/>
+                <Button Content="Export CSV" Click="ExportCSV_Click" Width="120" Margin="0,0,10,0"/>
+                <Button Content="Export JSON" Click="ExportJSON_Click" Width="120"/>
+            </StackPanel>
+
+            <!-- Chart -->
+            <TextBlock Text="Commits Over Time" FontWeight="Bold" Margin="0,20,0,5"/>
+            <oxy:PlotView Name="CommitPlot" Height="250" Margin="0,0,0,20"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
