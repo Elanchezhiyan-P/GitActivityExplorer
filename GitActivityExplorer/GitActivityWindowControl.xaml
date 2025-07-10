@@ -12,43 +12,44 @@
              Name="MyToolWindow">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="10" Orientation="Vertical">
+        <StackPanel Orientation="Vertical" Margin="0,0,0,10">
 
-            <!-- Top Git Operations with Icons -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                <Button ToolTip="Git Fetch" Click="GitFetch_Click" Width="40" Margin="0,0,10,0">
-                    <Image Source="/Resources/fetch.png" Width="16" Height="16"/>
+            <!-- Repo Details & Branch Selector -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,5">
+                <!-- Repository -->
+                <TextBlock Text="Repository:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock Name="RepositoryNameText" Foreground="LightGreen" FontSize="12" VerticalAlignment="Center" Margin="0,0,15,0"/>
+
+                <!-- Remote URL -->
+                <TextBlock Text="Remote URL:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBlock Name="RemoteUrlText" Foreground="LightGreen" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,15,0" Width="300"/>
+
+                <!-- Git Buttons -->
+                <Button ToolTip="Git Fetch" Click="GitFetch_Click" Width="40" Height="40" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="10,0,5,0">
+                    <TextBlock Text="" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Button>
-                <Button ToolTip="Git Pull" Click="GitPull_Click" Width="40">
-                    <Image Source="/Resources/pull.png" Width="16" Height="16"/>
+                <Button ToolTip="Git Pull" Click="GitPull_Click" Width="40" Height="40" FontFamily="Segoe MDL2 Assets" FontSize="16">
+                    <TextBlock Text="" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Button>
             </StackPanel>
 
-            <!-- Branch Selector -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
-                <TextBlock Text="Branch:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" Width="60"/>
-                <ComboBox Name="BranchSelector" SelectionChanged="BranchSelector_SelectionChanged" Width="300"/>
+            <!-- Row 2: Branch -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Branch:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <ComboBox Name="BranchSelector" Width="300" SelectionChanged="BranchSelector_SelectionChanged"/>
             </StackPanel>
 
-            <!-- Status Text -->
-            <TextBlock Name="StatusTextBlock" FontWeight="Bold" Foreground="Orange" Margin="0,5,0,5" TextWrapping="Wrap"/>
-            <StackPanel Name="LoadingSpinner" Orientation="Horizontal" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,10,0,10">
-                <TextBlock Text="Loading..." FontWeight="Bold" Foreground="LightGray" Margin="0,0,10,0"/>
-                <ProgressBar IsIndeterminate="True" Width="100" Height="10"/>
-            </StackPanel>
+            <!-- Repo Path -->
+            <TextBlock Name="StatusTextBlock" FontWeight="Bold" TextWrapping="Wrap" Margin="0,5,0,5"/>
+
+            <!-- Commit Timeline Header -->
+            <TextBlock Text="Git Commit Timeline" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
 
             <!-- Commit Table -->
-            <TextBlock Text="Git Commit Timeline" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
             <DataGrid Name="CommitTable" AutoGenerateColumns="False" Height="300" Margin="0,0,0,10"
                       IsReadOnly="True" SelectionChanged="CommitTable_SelectionChanged">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="3*">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="MinWidth" Value="150"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="3*"/>
                     <DataGridTextColumn Header="Author" Binding="{Binding Author}" Width="*"/>
                     <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*"/>
                     <DataGridTextColumn Header="Commit ID" Binding="{Binding CommitId}" Width="*"/>
@@ -56,12 +57,12 @@
             </DataGrid>
 
             <!-- Commit Navigation -->
-            <StackPanel Orientation="Horizontal" Margin="0,5,0,10">
-                <Button Content="⏮️ Prev" Click="PrevCommit_Click" Width="80" Margin="0,0,10,0"/>
-                <Button Content="⏭️ Next" Click="NextCommit_Click" Width="80"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                <Button Content="⏮️ Prev" Click="PrevCommit_Click" Width="80" Margin="5"/>
+                <Button Content="⏭️ Next" Click="NextCommit_Click" Width="80" Margin="5"/>
             </StackPanel>
 
-            <!-- File Changes Table -->
+            <!-- File Changes -->
             <TextBlock Text="File Changes for Selected Commit:" FontWeight="Bold" Margin="0,10,0,5" />
             <DataGrid Name="FileChangesTable" AutoGenerateColumns="False" Height="150" Margin="0,0,0,10" IsReadOnly="True"
                       MouseDoubleClick="FileChangesTable_MouseDoubleClick">
@@ -99,10 +100,6 @@
                 <Button Content="Export CSV" Click="ExportCSV_Click" Width="120" Margin="0,0,10,0"/>
                 <Button Content="Export JSON" Click="ExportJSON_Click" Width="120"/>
             </StackPanel>
-
-            <!-- Chart -->
-            <TextBlock Text="Commits Over Time" FontWeight="Bold" Margin="0,20,0,5"/>
-            <oxy:PlotView Name="CommitPlot" Height="250" Margin="0,0,0,20"/>
 
         </StackPanel>
     </ScrollViewer>

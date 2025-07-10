@@ -11,12 +11,13 @@ using OxyPlot.Series;
 using OxyPlot.Wpf;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Windows.Media;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Threading;
 using DataPoint = OxyPlot.DataPoint;
@@ -82,7 +83,7 @@ namespace GitActivityExplorer
             LoadingSpinner.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void RunGitCommand(string arguments, string title)
+        private void RunGitCommandWithInfo(string arguments, string title)
         {
             try
             {
@@ -92,17 +93,22 @@ namespace GitActivityExplorer
                     Arguments = arguments,
                     WorkingDirectory = repoPath,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
                 var process = System.Diagnostics.Process.Start(psi);
                 string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
-                MessageBox.Show(output, title);
+
+                LoadRepository(); // Refresh after pull/fetch
+
+                MessageBox.Show($"{output}\n{error}", title);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}");
+                MessageBox.Show($"Error: {ex.Message}", "Git Error");
             }
         }
 
@@ -126,33 +132,43 @@ namespace GitActivityExplorer
 
             _ = Dispatcher.InvokeAsync(() =>
             {
+                StatusTextBlock.Inlines.Clear(); // Clear previous content
+
                 try
                 {
                     var solutionDir = GetSolutionDirectory();
                     if (string.IsNullOrEmpty(solutionDir) || !Directory.Exists(solutionDir))
                     {
-                        StatusTextBlock.Text = "❌ No solution is currently loaded.";
+                        StatusTextBlock.Inlines.Add(new Run("❌ No solution is currently loaded.\n") { Foreground = Brushes.OrangeRed });
                         return;
                     }
 
                     repoPath = Repository.Discover(solutionDir);
                     if (string.IsNullOrEmpty(repoPath))
                     {
-                        StatusTextBlock.Text = "❌ No Git repository found in solution path.";
+                        StatusTextBlock.Inlines.Add(new Run("❌ No Git repository found in solution path.\n") { Foreground = Brushes.OrangeRed });
                         return;
                     }
 
                     repo = new Repository(repoPath);
+                    RepositoryNameText.Text = Path.GetFileName(repo.Info.WorkingDirectory.TrimEnd(Path.DirectorySeparatorChar));
+                    RemoteUrlText.Text = repo.Network.Remotes.FirstOrDefault()?.Url ?? "N/A";
                     BranchSelector.ItemsSource = repo.Branches.Where(b => !b.IsRemote).Select(b => b.FriendlyName).ToList();
                     BranchSelector.SelectedItem = repo.Head.FriendlyName;
                     LoadGitCommits(repo.Head.FriendlyName);
-                    StatusTextBlock.Text = $"✅ Loaded repository: {repoPath}";
+
+                    StatusTextBlock.Inlines.Add(new Run("✅ Loaded repository: ") { Foreground = Brushes.Orange });
+                    StatusTextBlock.Inlines.Add(new Run(repoPath + "\n") { Foreground = Brushes.LightGreen });
                 }
                 catch (Exception ex)
                 {
-                    StatusTextBlock.Text = $"❌ Error opening repository: {ex.Message}";
+                    StatusTextBlock.Inlines.Add(new Run("❌ Error opening repository: ") { Foreground = Brushes.OrangeRed });
+                    StatusTextBlock.Inlines.Add(new Run(ex.Message + "\n") { Foreground = Brushes.LightGray });
                 }
-                finally { ShowLoading(false); }
+                finally
+                {
+                    ShowLoading(false);
+                }
             }, DispatcherPriority.Background);
         }
 
@@ -160,7 +176,7 @@ namespace GitActivityExplorer
         {
             if (repo == null) return;
             var branch = repo.Branches[branchName];
-            commits = branch.Commits.Take(1000).ToList();
+            commits = branch.Commits.ToList();
 
             CommitTable.ItemsSource = commits.Select(c => new CommitViewModel
             {
@@ -172,6 +188,11 @@ namespace GitActivityExplorer
             }).ToList();
 
             selectedCommitIndex = -1;
+
+            // Set UI text fields
+            ActiveBranchText.Text = branch.FriendlyName;
+            TotalCommitsText.Text = commits.Count.ToString();
+
             ShowInsights(commits);
         }
 
@@ -199,11 +220,19 @@ namespace GitActivityExplorer
             var topModifiedFile = commitsPerFile.OrderByDescending(f => f.Value).FirstOrDefault().Key;
             var longestMessage = commitList.OrderByDescending(c => c.Message.Length).FirstOrDefault()?.Message;
 
-            StatusTextBlock.Text = string.Empty;
-            StatusTextBlock.Text += $"\n👨‍💻 Most Active Author: {mostActiveAuthor}";
-            StatusTextBlock.Text += $"\n📅 Busiest Day: {busiestDay?.Date:yyyy-MM-dd} ({busiestDay?.Count} commits)";
-            StatusTextBlock.Text += $"\n📁 Top Modified File: {topModifiedFile}";
-            StatusTextBlock.Text += $"\n📝 Longest Message: {longestMessage?.Substring(0, Math.Min(250, longestMessage.Length))}...";
+            StatusTextBlock.Inlines.Clear();
+
+            StatusTextBlock.Inlines.Add(new Run("👨‍💻 Most Active Author: ") { Foreground = Brushes.Orange });
+            StatusTextBlock.Inlines.Add(new Run($"{mostActiveAuthor}\n") { Foreground = Brushes.LightGreen });
+
+            StatusTextBlock.Inlines.Add(new Run("📅 Busiest Day: ") { Foreground = Brushes.Orange });
+            StatusTextBlock.Inlines.Add(new Run($"{busiestDay?.Date:yyyy-MM-dd} ({busiestDay?.Count} commits)\n") { Foreground = Brushes.LightGreen });
+
+            StatusTextBlock.Inlines.Add(new Run("📁 Top Modified File: ") { Foreground = Brushes.Orange });
+            StatusTextBlock.Inlines.Add(new Run($"{topModifiedFile}\n") { Foreground = Brushes.LightGreen });
+
+            StatusTextBlock.Inlines.Add(new Run("📝 Longest Message: ") { Foreground = Brushes.Orange });
+            StatusTextBlock.Inlines.Add(new Run($"{longestMessage?.Substring(0, Math.Min(300, longestMessage.Length))}\n") { Foreground = Brushes.LightGreen });
 
             PlotCommits(commitsPerDay.Select(x => (x.Date, x.Count)).ToList());
         }
@@ -219,6 +248,7 @@ namespace GitActivityExplorer
         private void CommitTable_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             FileChangesTable.ItemsSource = null;
+            FileChangesCount.Text = "0";
 
             if (CommitTable.SelectedItem is CommitViewModel selected && repo != null)
             {
@@ -228,11 +258,14 @@ namespace GitActivityExplorer
                 if (parent == null) return;
 
                 var patch = repo.Diff.Compare<Patch>(parent.Tree, commit.Tree);
-                FileChangesTable.ItemsSource = patch.Select(p => new FileChangeViewModel
+                var changes = patch.Select(p => new FileChangeViewModel
                 {
                     Status = p.Status.ToString(),
                     Path = p.Path
                 }).ToList();
+
+                FileChangesTable.ItemsSource = changes;
+                FileChangesCount.Text = changes.Count.ToString();
             }
         }
 
@@ -275,9 +308,9 @@ namespace GitActivityExplorer
             }
         }
 
-        private void GitPull_Click(object sender, RoutedEventArgs e) => RunGitCommand("pull", "Git Pull Output");
+        private void GitPull_Click(object sender, RoutedEventArgs e) => RunGitCommandWithInfo("pull", "Git Pull Output");
 
-        private void GitFetch_Click(object sender, RoutedEventArgs e) => RunGitCommand("fetch", "Git Fetch Output");
+        private void GitFetch_Click(object sender, RoutedEventArgs e) => RunGitCommandWithInfo("fetch", "Git Fetch Output");
 
         private void PrevCommit_Click(object sender, RoutedEventArgs e)
         {
@@ -286,6 +319,8 @@ namespace GitActivityExplorer
             selectedCommitIndex = (selectedCommitIndex - 1 + commits.Count) % commits.Count;
             CommitTable.SelectedIndex = selectedCommitIndex;
             CommitTable.ScrollIntoView(CommitTable.SelectedItem);
+
+            FocusRowByIndex(selectedCommitIndex);
         }
 
         private void NextCommit_Click(object sender, RoutedEventArgs e)
@@ -295,6 +330,19 @@ namespace GitActivityExplorer
             selectedCommitIndex = (selectedCommitIndex + 1) % commits.Count;
             CommitTable.SelectedIndex = selectedCommitIndex;
             CommitTable.ScrollIntoView(CommitTable.SelectedItem);
+
+            FocusRowByIndex(selectedCommitIndex);
+        }
+
+        private void FocusRowByIndex(int index)
+        {
+            CommitTable.UpdateLayout();
+            var row = (DataGridRow)CommitTable.ItemContainerGenerator.ContainerFromIndex(index);
+            if (row != null)
+            {
+                row.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                row.IsSelected = true;
+            }
         }
 
         private void PlotCommits(List<(DateTime Date, int Count)> commitsPerDay)
